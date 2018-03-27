@@ -58,7 +58,7 @@ function canvasToHTML(canvas, text) {
         }
         HTMLOut += "<br>";
     }
-    return HTMLOut;
+    return "<div style='background-color: black;'>" + HTMLOut + "</div>";
 }
 
 function canvasToText(canvas, text) {
