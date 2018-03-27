@@ -9,7 +9,6 @@
                 let reader = new FileReader()
                 if (!img)
                     img = document.createElement("img");
-
                 reader.onloadend = function() {
                     console.log('working ...')
                     img.src = reader.result;
@@ -21,6 +20,8 @@
         }
 
         function imageToCanvas(img, canvas, xresize, yresize) {
+            img.crossOrigin = "Anonymous";
+
             if(!canvas)
                 canvas = document.createElement('canvas');
             
@@ -36,6 +37,7 @@
                     img.onload = loadCanvas();  // race condition?
                 else
                     loadCanvas();
+
             });
         }
 
@@ -51,18 +53,13 @@
             let HTMLOut = "";
 
             text = text.replace(/\s/g,'');
-            console.log(text.length);
 
-            console.log(canvas.width);
-            console.log(canvas.height);
-
-            for (let x = 0; x < canvas.height; x++) {
-                for(let y = 0; y < canvas.width; y++) {
+            for(let y = 0; y < canvas.height; y++) {
+                for (let x = 0; x < canvas.width; x++) {
                     let imgData=context.getImageData(x,y,1,1);
 
                     HTMLOut += "<span style='color: rgb(" + imgData.data[0] +  "," +  imgData.data[1] + "," +  imgData.data[2] + ")'>" + text.charAt(textIndex) + "</span>";   // Possible improvement for continuous pixels.
 
-                    console.log(x + "," + y + " : <span style='color: rgb(" + imgData.data[0] +  "," +  imgData.data[1] + "," +  imgData.data[2] + ")'>" + text.charAt(textIndex) + "</span>");
                     textIndex = (textIndex + 1) % text.length;
                 }
                 HTMLOut += "<br>";
@@ -73,20 +70,51 @@
             return HTMLOut;
         }
 
-        function convertHTML(width, height) {
-            alert('convert to HTML');
-            
+        function canvasToText(canvas, text) {
+            let context = canvas.getContext("2d");
+            let textIndex = 0;
+            let textOut = "";
+
+
+            for(let y = 0; y < canvas.height; y++) {
+                for (let x = 0; x < canvas.width; x++) {
+                    let imgData=context.getImageData(x,y,1,1);
+                    index = Math.round( (imgData.data[0] + imgData.data[1] + imgData.data[2]) / (255*3) * (text.length-1) ) ;
+
+                    console.log(index);
+
+                    textOut += text[index];
+                }
+                textOut += "\n";
+            }
+
+            console.log(textOut);
+            return "<pre>" + textOut + "</pre>";
+        }
+
+
+        function convertHTML(width, height, text) {
+            alert('convert to HTML started');
+
             // 1. Create a canvas of appropriate size
-            canvas = imageToCanvas(document.querySelector('#img'), null)
+            imageToCanvas(document.querySelector('#img'), null, 40, 120).then((canvas) => {
 
-            // convert to HTML
-            document.querySelector("#result").innerHTML =
-                canvasToHTML(document.querySelector("#canvas"), "the quick brown fox jumps over the lazy dog.");
-
+                // Convert to HTML and assign to the output div.
+                document.querySelector("#result").innerHTML = canvasToHTML(canvas, "the quick brown fox jumps over the lazy dog.");
+                
+                alert('convert to HTML completed... Scroll down!');
+            });
         }
         
-        function convertText() {
-            alert('convert to text');
+        function convertText(width, height, scale) {
+            alert('convert to text started');
+            // 1. Create a canvas of the appropriate size
+            imageToCanvas(document.querySelector('#img'), null, 40, 120).then((canvas) => {
+                // Convert to text, wrap in a 'pre' and assign to the output div.
+                document.querySelector("#result").innerHTML = canvasToText(canvas, "@#:.  ");
+                
+                alert('convert to text completed... Scroll down!');
+            });
         }
 
     </script>
