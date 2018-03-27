@@ -1,0 +1,131 @@
+<html>
+    <head>
+        <title>ASCII Artist</title>
+    </head>
+
+    <script>
+        function inputToImage(input, img) {
+            return new Promise((resolve, reject) => { 
+                let reader = new FileReader()
+                if (!img)
+                    img = document.createElement("img");
+
+                reader.onloadend = function() {
+                    console.log('working ...')
+                    img.src = reader.result;
+                    resolve(img);
+                }
+                reader.onerror = reader.onabort = (e) => reject(e);
+                reader.readAsDataURL(input.files[0]);
+            });
+        }
+
+        function imageToCanvas(img, canvas, xresize, yresize) {
+            if(!canvas)
+                canvas = document.createElement('canvas');
+            
+            return new Promise( function (resolve, reject) {
+                let loadCanvas = function () {
+                    canvas.height = xresize || img.height;
+                    canvas.width = yresize || img.width;
+
+                    canvas.getContext("2d").drawImage(img, 0, 0, canvas.width, canvas.height);
+                    return resolve(canvas);
+                }
+                if(!img.complete)
+                    img.onload = loadCanvas();  // race condition?
+                else
+                    loadCanvas();
+            });
+        }
+
+        function inputToCanvas(input, canvas, width, height) {
+            return inputToImage(input)
+                    .then((img) => imageToCanvas(img, canvas, width, height)
+                );
+        }
+
+        function canvasToHTML(canvas, text) {
+            let context = canvas.getContext("2d");
+            let textIndex = 0;
+            let HTMLOut = "";
+
+            text = text.replace(/\s/g,'');
+            console.log(text.length);
+
+            console.log(canvas.width);
+            console.log(canvas.height);
+
+            for (let x = 0; x < canvas.height; x++) {
+                for(let y = 0; y < canvas.width; y++) {
+                    let imgData=context.getImageData(x,y,1,1);
+
+                    HTMLOut += "<span style='color: rgb(" + imgData.data[0] +  "," +  imgData.data[1] + "," +  imgData.data[2] + ")'>" + text.charAt(textIndex) + "</span>";   // Possible improvement for continuous pixels.
+
+                    console.log(x + "," + y + " : <span style='color: rgb(" + imgData.data[0] +  "," +  imgData.data[1] + "," +  imgData.data[2] + ")'>" + text.charAt(textIndex) + "</span>");
+                    textIndex = (textIndex + 1) % text.length;
+                }
+                HTMLOut += "<br>";
+            }
+
+            console.log(HTMLOut);
+
+            return HTMLOut;
+        }
+
+        function convertHTML(width, height) {
+            alert('convert to HTML');
+            
+            // 1. Create a canvas of appropriate size
+            canvas = imageToCanvas(document.querySelector('#img'), null)
+
+            // convert to HTML
+            document.querySelector("#result").innerHTML =
+                canvasToHTML(document.querySelector("#canvas"), "the quick brown fox jumps over the lazy dog.");
+
+        }
+        
+        function convertText() {
+            alert('convert to text');
+        }
+
+    </script>
+    <style>
+            #step2 img { width: 50%; height: 50%; margin-left: 25%;}
+    </style>
+    <body>
+        <h1>ASCII Artist</h1>
+
+
+        <div id="step1"> <!-- Uploaded image to image. -->
+            <input type="file" id="source_image" onchange="inputToImage(this, document.querySelector('#img'), 400, 400)">
+        </div>
+
+        <div id="step2" style='background-color:aquamarine'> 
+            <img id="img" src="test.png">
+            
+            <div id="params">
+            xresize: <input id="xresize" value="80">
+            yresize: <input id="yresize" value="80">
+            <input type="checkbox" id="keepratio"> Keep Aspect Ratio
+
+                <div id="color">
+                    <textarea id="colortext">
+                            The quick brown fox jumps over the lazy dog.
+                    </textarea>
+
+                    <input value="Convert to HTML" type="button" onclick="convertHTML()">
+                </div>
+                <div id="bnw">
+                    <input value="@#!:. " id="">
+                    <input value="Convert to Plain Text" type="button" onclick="convertText()">
+                </div>
+            </div>
+
+        </div>
+
+        <div id="result" style="font-family:'Courier New', Courier, monospace;">
+        </div>
+
+    </body>
+</html>
