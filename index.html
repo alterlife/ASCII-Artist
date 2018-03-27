@@ -1,158 +1,113 @@
 <html>
     <head>
         <title>ASCII Artist</title>
-    </head>
+        <script src="js/ascii_artist.js"></script>
+        <link rel="stylesheet" type="text/css" href="css/aa.css">
+        <link href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm" crossorigin="anonymous">
+        <script>
+            function loadNewImage(src) {
+                inputToImage(src, document.querySelector('#img'));
+                document.querySelector('#keepratio').checked = true;
+                document.querySelector('#xresize').value = 120;
+                updateYResize();
 
-    <script>
-        function inputToImage(input, img) {
-            return new Promise((resolve, reject) => { 
-                let reader = new FileReader()
-                if (!img)
-                    img = document.createElement("img");
-                reader.onloadend = function() {
-                    console.log('working ...')
-                    img.src = reader.result;
-                    resolve(img);
-                }
-                reader.onerror = reader.onabort = (e) => reject(e);
-                reader.readAsDataURL(input.files[0]);
-            });
-        }
+                document.querySelector('#step2').style.display = 'block';
+            }
 
-        function imageToCanvas(img, canvas, xresize, yresize) {
-            img.crossOrigin = "Anonymous";
+            function updateYResize() {
+                if(document.querySelector('#keepratio').checked !== true)
+                    return;
+                let width = document.querySelector('#xresize').value,
+                    img = document.querySelector('#img');
+                
+                document.querySelector('#yresize').value = Math.round(width/img.width * img.height/3);
+            }
 
-            if(!canvas)
-                canvas = document.createElement('canvas');
+            function updateXResize() {
+                if(document.querySelector('#keepratio').checked !== true)
+                    return;
+                let height = document.querySelector('#yresize').value,
+                    img = document.querySelector('#img');
+                
+                document.querySelector('#xresize').value = Math.round(height/img.height * img.width*3);
+            }
+
+            function convertHTML() {
+                let img = document.querySelector('#img'),
+                    width = document.querySelector('#xresize').value,
+                    height = document.querySelector('#yresize').value,
+                    text = document.querySelector('#htmltext').value;
             
-            return new Promise( function (resolve, reject) {
-                let loadCanvas = function () {
-                    canvas.height = xresize || img.height;
-                    canvas.width = yresize || img.width;
+                imageToCanvas(img, null, width || 80, height || 40).then((canvas) => {
+                    document.querySelector('#step3').style.display = 'block';
+                    document.querySelector("#result").innerHTML = canvasToHTML(canvas, text);
+                    window.scrollTo(0,document.body.scrollHeight);
 
-                    canvas.getContext("2d").drawImage(img, 0, 0, canvas.width, canvas.height);
-                    return resolve(canvas);
-                }
-                if(!img.complete)
-                    img.onload = loadCanvas();  // race condition?
-                else
-                    loadCanvas();
-
-            });
-        }
-
-        function inputToCanvas(input, canvas, width, height) {
-            return inputToImage(input)
-                    .then((img) => imageToCanvas(img, canvas, width, height)
-                );
-        }
-
-        function canvasToHTML(canvas, text) {
-            let context = canvas.getContext("2d");
-            let textIndex = 0;
-            let HTMLOut = "";
-
-            text = text.replace(/\s/g,'');
-
-            for(let y = 0; y < canvas.height; y++) {
-                for (let x = 0; x < canvas.width; x++) {
-                    let imgData=context.getImageData(x,y,1,1);
-
-                    HTMLOut += "<span style='color: rgb(" + imgData.data[0] +  "," +  imgData.data[1] + "," +  imgData.data[2] + ")'>" + text.charAt(textIndex) + "</span>";   // Possible improvement for continuous pixels.
-
-                    textIndex = (textIndex + 1) % text.length;
-                }
-                HTMLOut += "<br>";
+                });
+            }
+            
+            function convertText() {
+                let img = document.querySelector('#img'),
+                    width = document.querySelector('#xresize').value,
+                    height = document.querySelector('#yresize').value,
+                    text = document.querySelector('#bwtext').value;
+                
+                imageToCanvas(img, null,  width || 80, height || 40).then((canvas) => {
+                    document.querySelector('#step3').style.display = 'block';
+                    document.querySelector("#result").innerHTML = canvasToText(canvas, text || "#I:.  ");
+                    window.scrollTo(0,document.body.scrollHeight);
+                });
             }
 
-            console.log(HTMLOut);
 
-            return HTMLOut;
-        }
+        </script>
 
-        function canvasToText(canvas, text) {
-            let context = canvas.getContext("2d");
-            let textIndex = 0;
-            let textOut = "";
-
-
-            for(let y = 0; y < canvas.height; y++) {
-                for (let x = 0; x < canvas.width; x++) {
-                    let imgData=context.getImageData(x,y,1,1);
-                    index = Math.round( (imgData.data[0] + imgData.data[1] + imgData.data[2]) / (255*3) * (text.length-1) ) ;
-
-                    console.log(index);
-
-                    textOut += text[index];
-                }
-                textOut += "\n";
-            }
-
-            console.log(textOut);
-            return "<pre>" + textOut + "</pre>";
-        }
-
-
-        function convertHTML(width, height, text) {
-            alert('convert to HTML started');
-
-            // 1. Create a canvas of appropriate size
-            imageToCanvas(document.querySelector('#img'), null, 40, 120).then((canvas) => {
-
-                // Convert to HTML and assign to the output div.
-                document.querySelector("#result").innerHTML = canvasToHTML(canvas, "the quick brown fox jumps over the lazy dog.");
-                
-                alert('convert to HTML completed... Scroll down!');
-            });
-        }
-        
-        function convertText(width, height, scale) {
-            alert('convert to text started');
-            // 1. Create a canvas of the appropriate size
-            imageToCanvas(document.querySelector('#img'), null, 40, 120).then((canvas) => {
-                // Convert to text, wrap in a 'pre' and assign to the output div.
-                document.querySelector("#result").innerHTML = canvasToText(canvas, "@#:.  ");
-                
-                alert('convert to text completed... Scroll down!');
-            });
-        }
-
-    </script>
-    <style>
-            #step2 img { width: 50%; height: 50%; margin-left: 25%;}
-    </style>
+    </head>
     <body>
-        <h1>ASCII Artist</h1>
+        <h1>Alternate's Pure Javascript ASCII Art Converter</h1>
 
+        <div>(All processing is done in client-side javascript. Your image will not be uploaded to a server)</div>
 
         <div id="step1"> <!-- Uploaded image to image. -->
-            <input type="file" id="source_image" onchange="inputToImage(this, document.querySelector('#img'), 400, 400)">
+            <h2>Step 1: Select a Source Image </h2>
+            <label for="source_image"> Select an image to convert... </label>
+            <input type="file" id="source_image" onchange="loadNewImage(this);">
         </div>
 
-        <div id="step2" style='background-color:aquamarine'> 
+        <div id="step2" class='.bg-dark'> 
+            <h2>Step 2: Preview and Convert</h2>
             <img id="img" src="test.png">
-            
+
+            <h2>Conversion Parameters</h2>
+            <div>(You can play with these to get better results, but the defaults are usually Ok)<br><br></div>
+
             <div id="params">
-            xresize: <input id="xresize" value="80">
-            yresize: <input id="yresize" value="80">
-            <input type="checkbox" id="keepratio"> Keep Aspect Ratio
+                <div><label for="xresize">xresize</label> <input id="xresize" value="80" onchange="updateYResize()"></div>
+                <div></div><label for="yresize">yresize</label> <input id="yresize" onchange="updateXResize()" value="80"></div>
+                <div><input type="checkbox" id="keepratio"><label for="keepratio">Keep Aspect Ratio</label></div>
+                <div class="b5050">
+                    <div id="color">
+                        <h3>HTML Convert</h3>
+                        <label for="htmltext">Text to use</label>
+                        <textarea id="htmltext">The quick brown fox jumps over the lazy dog.</textarea>
 
-                <div id="color">
-                    <textarea id="colortext">
-                            The quick brown fox jumps over the lazy dog.
-                    </textarea>
-
-                    <input value="Convert to HTML" type="button" onclick="convertHTML()">
-                </div>
-                <div id="bnw">
-                    <input value="@#!:. " id="">
-                    <input value="Convert to Plain Text" type="button" onclick="convertText()">
+                        <div><button class="btn" onclick="convertHTML()">Convert to HTML</button></div>
+                    </div><div id="bnw">
+                        <h3>Plain-text convert</h3>
+                        <label for="bwtext">Conversion Palette</label>
+                        <input id="bwtext" value="@#!:. " id="">
+                        <div><button class="btn" onclick="convertText()">Convert to Plain Text</button></div>
+                    </div>
                 </div>
             </div>
 
         </div>
 
-        <div id="result" style="font-family:'Courier New', Courier, monospace;">
+        <div id="step3">
+            <h2>Step 3: Converted Ascii Art</h2>
+            <div id="result" style="font-family:'Courier New', Courier, monospace;">
+            </div>
+            <a href='#'>Back to top</a>
         </div>
 
     </body>

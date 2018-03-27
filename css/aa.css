@@ -1,0 +1,13 @@
+* { box-sizing: border-box; }
+
+#step2 { display: block; }
+#step2 img { max-width: 50%; height: auto; margin-left: 25%;}
+
+
+.b5050  { border: 0px; margin: 0px; padding: 0px;}
+.b5050 > div { width: 50%; margin: 0px; display: inline-block; }
+
+
+h1, h2, h3 { padding-top: 1em; }
+
+#step2, #step3 {display:none;}
